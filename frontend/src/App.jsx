@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Scale, Plus, History, Loader2, LayoutPanelLeft, ChevronRight, User, Bot, AlertCircle, Settings2 } from 'lucide-react';
+import { Send, Scale, Plus, History, Loader2, LayoutPanelLeft, ChevronRight, User, Bot, AlertCircle, Settings2, Edit, Trash2, Check, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { sendMessage } from './services/api';
 import { clsx } from 'clsx';
@@ -9,17 +9,48 @@ function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
+const STORAGE_KEY = 'afghan_legal_chats';
+const EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours
+
 function App() {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Hello! I am your Afghan Legal Expert. How can I assist you with legal queries today?',
-      type: 'text'
+  const [chats, setChats] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      // Filter out expired chats
+      return parsed.filter(chat => Date.now() - chat.timestamp < EXPIRY_TIME);
+    } catch {
+      return [];
     }
-  ]);
+  });
+
+  const [activeChatId, setActiveChatId] = useState(() => {
+    return chats.length > 0 ? chats[0].id : null;
+  });
+
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [editingChatId, setEditingChatId] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
   const messagesEndRef = useRef(null);
+
+  const activeChat = chats.find(c => c.id === activeChatId);
+  const messages = activeChat ? activeChat.messages : [];
+
+  // Sync to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+  }, [chats]);
+
+  // Initial chat creation if empty
+  useEffect(() => {
+    if (chats.length === 0) {
+      createNewChat();
+    } else if (!activeChatId) {
+      setActiveChatId(chats[0].id);
+    }
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,11 +60,68 @@ function App() {
     scrollToBottom();
   }, [messages]);
 
+  const createNewChat = () => {
+    const newChat = {
+      id: Date.now().toString(),
+      title: 'New Consultation',
+      timestamp: Date.now(),
+      messages: [
+        {
+          role: 'assistant',
+          content: 'Hello! I am your Afghan Legal Expert. How can I assist you with legal queries today?',
+          type: 'text'
+        }
+      ]
+    };
+    setChats([newChat, ...chats]);
+    setActiveChatId(newChat.id);
+  };
+
+  const deleteChat = (e, id) => {
+    e.stopPropagation();
+    const filtered = chats.filter(c => c.id !== id);
+    setChats(filtered);
+    if (activeChatId === id) {
+      setActiveChatId(filtered.length > 0 ? filtered[0].id : null);
+    }
+  };
+
+  const startRenaming = (e, chat) => {
+    e.stopPropagation();
+    setEditingChatId(chat.id);
+    setEditTitle(chat.title);
+  };
+
+  const saveRename = (e) => {
+    e.stopPropagation();
+    setChats(chats.map(c =>
+      c.id === editingChatId ? { ...c, title: editTitle } : c
+    ));
+    setEditingChatId(null);
+  };
+
+  const cancelRename = (e) => {
+    e.stopPropagation();
+    setEditingChatId(null);
+  };
+
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !activeChatId) return;
 
     const userMessage = { role: 'user', content: input, type: 'text' };
-    setMessages(prev => [...prev, userMessage]);
+
+    // Auto-rename chat and remove initial greeting if it's the first user message
+    const isFirstUserMessage = messages.length === 1 && messages[0].role === 'assistant';
+    const updatedTitle = isFirstUserMessage
+      ? (input.length > 30 ? input.substring(0, 30) + '...' : input)
+      : activeChat.title;
+
+    setChats(chats.map(c =>
+      c.id === activeChatId
+        ? { ...c, title: updatedTitle, messages: isFirstUserMessage ? [userMessage] : [...c.messages, userMessage] }
+        : c
+    ));
+
     setInput('');
     setIsLoading(true);
 
@@ -47,14 +135,22 @@ function App() {
         type: 'ai'
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setChats(prev => prev.map(c =>
+        c.id === activeChatId
+          ? { ...c, messages: [...c.messages, assistantMessage] }
+          : c
+      ));
     } catch (error) {
       const errorMessage = {
         role: 'assistant',
-        content: '**Error:** Failed to connect to the legal database. Please ensure the backend is running.',
+        content: '**Error:** Failed to connect to the legal database.',
         type: 'error'
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setChats(prev => prev.map(c =>
+        c.id === activeChatId
+          ? { ...c, messages: [...c.messages, errorMessage] }
+          : c
+      ));
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +162,7 @@ function App() {
       <div className="hidden md:flex flex-col w-[260px] bg-[#171717] border-r border-[#303030]">
         <div className="p-4 flex items-center justify-between mb-2">
           <button
-            onClick={() => window.location.reload()}
+            onClick={createNewChat}
             className="flex-1 flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-[#2f2f2f] transition-all text-sm font-medium border border-[#303030]"
           >
             <Plus className="w-4 h-4" /> New consultation
@@ -75,14 +171,49 @@ function App() {
 
         <div className="flex-1 overflow-y-auto px-3 space-y-1">
           <div className="text-[11px] font-bold text-[#676767] uppercase tracking-wider mb-2 px-3">History</div>
-          <div className="group flex items-center gap-2 p-2 rounded-lg hover:bg-[#2f2f2f] cursor-pointer text-sm text-[#ececec] overflow-hidden">
-            <History className="w-4 h-4 text-[#676767]" />
-            <span className="truncate flex-1 text-[13px]">Judicial Independence under Taliban</span>
-          </div>
-          <div className="group flex items-center gap-2 p-2 rounded-lg hover:bg-[#2f2f2f] cursor-pointer text-sm text-[#ececec] overflow-hidden">
-            <History className="w-4 h-4 text-[#676767]" />
-            <span className="truncate flex-1 text-[13px]">Citizenship Application rules</span>
-          </div>
+          {chats.map(chat => (
+            <div
+              key={chat.id}
+              onClick={() => setActiveChatId(chat.id)}
+              className={cn(
+                "group flex items-center gap-2 p-2 rounded-lg cursor-pointer text-sm overflow-hidden transition-all",
+                activeChatId === chat.id ? "bg-[#2f2f2f] text-white" : "text-[#ececec] hover:bg-[#2f2f2f]/50"
+              )}
+            >
+              <History className="w-4 h-4 flex-shrink-0 text-[#676767]" />
+              <div className="flex-1 truncate">
+                {editingChatId === chat.id ? (
+                  <input
+                    autoFocus
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveRename(e);
+                      if (e.key === 'Escape') cancelRename(e);
+                    }}
+                    onBlur={saveRename}
+                    className="bg-transparent border-none outline-none w-full text-white text-[13px]"
+                  />
+                ) : (
+                  <span className="text-[13px]">{chat.title}</span>
+                )}
+              </div>
+
+              <div className={cn(
+                "flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity",
+                activeChatId === chat.id && "opacity-100"
+              )}>
+                {editingChatId === chat.id ? (
+                  <Check onClick={saveRename} className="w-3.5 h-3.5 text-green-500 hover:text-green-400" />
+                ) : (
+                  <>
+                    <Edit onClick={(e) => startRenaming(e, chat)} className="w-3.5 h-3.5 text-[#676767] hover:text-white" />
+                    <Trash2 onClick={(e) => deleteChat(e, chat.id)} className="w-3.5 h-3.5 text-[#676767] hover:text-red-400" />
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="p-4 border-t border-[#303030]">
@@ -211,7 +342,7 @@ function App() {
               </button>
             </div>
             <p className="text-center text-[11px] text-[#676767] mt-3 tracking-wide">
-              GPT can make mistakes. Check important legal info.
+              Chats will be removed after 24 hours only. Chat can make mistakes, please verify the answers.
             </p>
           </div>
         </div>

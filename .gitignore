@@ -1,0 +1,28 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# --- Environment Secrets ---
+.env
+
+# --- AI Models & Caches ---
+# We ignore these because they are very large and can be regenerated/redownloaded
+backend/models/
+backend/hf_cache/
+backend/query_cache/
+
+# --- IDEs ---
+.vscode/
+.idea/
+
+# --- OS Files ---
+.DS_Store
+Thumbs.db

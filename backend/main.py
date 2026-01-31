@@ -40,8 +40,9 @@ def call_ai_model(query: str, top_chunk: str):
         f"--- SOURCE TEXT ---\n{top_chunk}\n\n"
         f"--- USER QUESTION ---\n{query}\n\n"
         "Output Format:\n"
-        "1. Professional Summary (in a helpful, easy-to-read tone)\n"
-        "2. DIRECT QUOTE: (Include the specific sentence from the source that supports this answer)\n"
+        "1. Professional Summary (in a helpful, easy-to-read tone)\n\n"
+        "2. DIRECT QUOTE:\n"
+        "> [Insert exact sentence from source here]\n"
     )
     
     try:

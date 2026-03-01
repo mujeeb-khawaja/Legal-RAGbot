@@ -1,259 +1,195 @@
 import os
+import re
+import time
 import json
 import requests
-import re
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from qdrant_client import QdrantClient
 from llama_index.core import VectorStoreIndex, Settings
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from qdrant_client import QdrantClient
+from sentence_transformers import CrossEncoder
 
-try:
-    from sentence_transformers import CrossEncoder
-except Exception:
-    CrossEncoder = None
+# --- CONFIG ---
+BASE_DIR = os.path.dirname(__file__)
+CACHE_DIR = os.path.join(BASE_DIR, "hf_cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
+os.environ["TRANSFORMERS_CACHE"] = CACHE_DIR
 
-# Load env vars from root .env
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, '..', '.env'))
+API_KEY = os.getenv("API_KEY")
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 
-API_KEY = os.getenv('API_KEY')
-QDRANT_URL = os.getenv('QDRANT_URL')
-QDRANT_API_KEY = os.getenv('QDRANT_API_KEY')
+app = FastAPI(title="AfghanLegalGPT API")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-if not API_KEY:
-    print('ERROR: API_KEY not found in .env')
-
-os.environ['API_KEY'] = API_KEY or ''
-
-app = FastAPI(title='AfghanLegalGPT API')
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=['*'],  # Restrict in production
-    allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
-)
-
+# Globals
 retriever = None
 reranker = None
+executor = ThreadPoolExecutor(max_workers=4)
+RERANKER_MODEL_ID = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
-
-def call_ai_model(query: str, context_text: str) -> str:
-    """Generate a legal answer using the re-ranked context."""
+# --- HELPER FUNCTIONS ---
+def rewrite_query_for_legal_search(query: str) -> str:
     prompt = (
-        'You are an expert Afghan Legal Assistant.\\n'
-        'You have been given multiple legal text chunks from Afghan legal materials.\\n'
-        'Task: search across ALL chunks and identify the most relevant article(s) to answer directly.\\n'
-        'Ignore irrelevant chunks.\\n'
-        f'--- LEGAL CONTEXT (MULTIPLE CHUNKS) ---\\n{context_text}\\n\\n'
-        f'--- USER QUESTION ---\\n{query}\\n\\n'
-        'Output Format:\\n'
-        '1. Professional Summary (directly answering the question)\\n\\n'
-        '2. DIRECT QUOTE:\\n'
-        '> [Insert exact sentence from the most relevant article]\\n\\n'
-        '3. Source: Article [number if available]\\n'
-    )
+        "You are an expert legal search query generator for the Civil Code of Afghanistan (1977).\n"
+        "Your Goal: Translate layman user questions into precise legal terminology and concepts found in the Civil Code to maximize vector retrieval accuracy.\n\n"
+        
+        "GUIDELINES FOR TRANSLATION:\n"
+        "1. IDENTIFY THE LEGAL DOMAIN:\n"
+        "   - If Money/Debts/Agreements -> Use 'Obligations', 'Contracts', 'Debt Discharge'.\n"
+        "   - If Land/Houses -> Use 'Real Rights', 'Real Estate', 'Ownership', 'Preemption (Shufa)', 'Mortgage'.\n"
+        "   - If Family/Death -> Use 'Personal Status', 'Inheritance', 'Will (Wasiyat)', 'Marriage', 'Custody'.\n\n"
 
+        "2. MAP LAYMAN TERMS TO CIVIL CODE JARGON:\n"
+        "   - 'Breaking a deal' -> 'Rescission' or 'Dissolution of Contract'.\n"
+        "   - 'Cheating/Lying' -> 'Fraud', 'Deception', or 'Lesion'.\n"
+        "   - 'Forcing someone' -> 'Duress' or 'Coercion'.\n"
+        "   - 'Buying together' or 'Contributing money' -> 'Common Ownership (Shirkat)', 'Company', 'Division of Property'.\n"
+        "   - 'Neighbor rights' -> 'Preemption', 'Easement Rights'.\n"
+        "   - 'Giving for free' -> 'Donation' or 'Endowment (Waqf)'.\n\n"
+
+        "3. HANDLE FAMILY CONTEXT INTELLIGENTLY:\n"
+        "   - If the query is about business, debts, or property purchase between relatives (father/son) BUT no one has died -> FOCUS on 'Contract' and 'Ownership' terms. IGNORE Inheritance terms.\n"
+        "   - Only use 'Inheritance' or 'Bequeath' if the query explicitly mentions death or passing away.\n\n"
+
+        f"User Query: {query}\n\n"
+        "Output: A single line of high-value legal search keywords and phrases."
+    )
+    
+    models = [
+        "meta-llama/llama-3.2-3b-instruct:free",
+        "arcee-ai/trinity-large-preview:free",
+        "google/gemma-3-4b-it:free"
+    ]
+    
+    for model in models:
+        try:
+            response = requests.post(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"},
+                data=json.dumps({
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.1,
+                    "max_tokens": 100
+                }),
+                timeout=5
+            )
+            if response.status_code == 200:
+                rewritten = response.json()['choices'][0]['message']['content'].strip()
+                print(f"🔄 Rewritten: {rewritten}")
+                return rewritten
+        except Exception:
+            continue
+    return query
+
+def call_ai_model(query: str, context: str) -> str:
+    prompt = (
+        "You are an expert Afghan Legal Assistant.\n"
+        "Your Task: Answer the user's question using ONLY the provided Legal Articles.\n"
+        "Instructions:\n"
+        "1. Read all provided Articles carefully.\n"
+        "2. If the user asks about a specific rule (e.g. 'stranger'), look for legal equivalents (e.g. 'non-heir').\n"
+        "3. Explain the rule and any exceptions found in the text.\n"
+        "4. Cite the Article Number explicitly.\n\n"
+        f"--- LEGAL ARTICLES ---\n{context}\n\n"
+        f"--- QUESTION ---\n{query}\n\n"
+        "Answer:"
+    )
+    
+    # Using a slightly more robust model if possible, fallback to Llama
     try:
         response = requests.post(
-            url='https://openrouter.ai/api/v1/chat/completions',
-            headers={
-                'Authorization': f'Bearer {API_KEY}',
-                'Content-Type': 'application/json',
-            },
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"},
             data=json.dumps({
-                'model': 'google/gemma-3-12b-it:free',
-                'messages': [{'role': 'user', 'content': prompt}],
-                'temperature': 0.2,
-                'max_tokens': 1000,
+                "model": "arcee-ai/trinity-large-preview:free",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1,
+                "max_tokens": 500
             }),
-            timeout=60,
+            timeout=30  # Increased timeout for stability
         )
-        if response.status_code != 200:
-            return f'Error from AI Provider: {response.status_code} - {response.text}'
-
-        result = response.json()
-        return result['choices'][0]['message']['content']
+        if response.status_code == 200:
+            return response.json()['choices'][0]['message']['content']
+        else:
+             print(f"AI Error Status: {response.status_code}")
     except Exception as e:
-        return f'Exception in AI call: {str(e)}'
+        print(f"AI Connection Error: {e}")
+    return "AI Unavailable. Please check the sources below."
 
-
-def rewrite_query_for_legal_search(user_query: str) -> str:
-    """Rewrite user query in legal terminology to improve retrieval recall."""
-    prompt = (
-        'You are an Afghan legal search assistant.\\n'
-        'Rewrite the user question using formal Afghan Civil Code legal terminology.\\n'
-        'Return only one rewritten query sentence.\\n'
-        f'User Question: {user_query}'
-    )
-
-    try:
-        response = requests.post(
-            url='https://openrouter.ai/api/v1/chat/completions',
-            headers={
-                'Authorization': f'Bearer {API_KEY}',
-                'Content-Type': 'application/json',
-            },
-            data=json.dumps({
-                'model': 'meta-llama/llama-3.2-3b-instruct:free',
-                'messages': [{'role': 'user', 'content': prompt}],
-                'temperature': 0.1,
-                'max_tokens': 100,
-            }),
-            timeout=30,
-        )
-        if response.status_code != 200:
-            return user_query
-
-        result = response.json()
-        rewritten = result['choices'][0]['message']['content'].strip()
-        return rewritten or user_query
-    except Exception:
-        return user_query
-
-
-def extract_articles(chunk: str) -> list:
-    """Split a chunk into individual articles."""
-    # Split on "Article [number]:" pattern
-    parts = re.split(r'(?=Article \d+[:\s])', chunk)
-    # Clean and filter empty parts
-    articles = [p.strip() for p in parts if p.strip() and re.match(r'Article \d+', p.strip())]
-    return articles
-
-
-def find_best_article(query: str, chunks: list) -> tuple:
-    """
-    From all retrieved chunks, extract individual articles,
-    re-rank them, and return the single most relevant one.
-    Returns (best_article_text, score)
-    """
-    global reranker
-    all_articles = []
-    
-    # Step 1: Split every chunk into individual articles
-    for chunk in chunks:
-        articles = extract_articles(chunk)
-        all_articles.extend(articles)
-    
-    if not all_articles or not reranker:
-        return chunks[0] if chunks else "No content found.", 0.0
-    
-    print(f"📋 Total individual articles extracted: {len(all_articles)}")
-    
-    # Step 2: Re-rank all individual articles against the query
-    pairs = [[query, article] for article in all_articles]
-    scores = reranker.predict(pairs)
-    
-    # Step 3: Sort and return the best one
-    ranked = sorted(zip(scores, all_articles), key=lambda x: x[0], reverse=True)
-    
-    best_score = ranked[0][0]
-    best_article = ranked[0][1]
-    
-    print(f"🏆 Best article score: {best_score:.3f}")
-    print(f"🏆 Best article preview: {best_article[:80]}...")
-    
-    return best_article, float(best_score)
-
-
-def format_answer(query: str, best_article: str, confidence: float) -> str:
-    """Format the best article into a clean readable answer."""
-    # Extract article number for display
-    article_match = re.search(r'(Article \d+)', best_article)
-    article_ref = article_match.group(1) if article_match else "Relevant Article"
-    
-    confidence_label = "High" if confidence > 0.7 else "Medium" if confidence > 0.3 else "Low"
-    
-    return (
-        f"📋 Most Relevant Legal Provision\\n"
-        f"{'='*50}\\n\\n"
-        f"{best_article}\\n\\n"
-        f"{'='*50}\\n"
-        f"Source: {article_ref} | Confidence: {confidence_label} ({confidence:.2f})"
-    )
-
-
-@app.on_event('startup')
+@app.on_event("startup")
 def startup_event():
     global retriever, reranker
-    print('Starting server and loading models...')
+    print("🚀 Starting AfghanLegalGPT (Balanced Accuracy Mode)...")
 
-    cache_dir = os.path.join(os.path.dirname(__file__), 'hf_cache')
-    os.makedirs(cache_dir, exist_ok=True)
-    os.environ['TRANSFORMERS_CACHE'] = cache_dir
-    os.environ['HF_HOME'] = cache_dir
-
-    print(f'Initializing embedding model (cache: {cache_dir})...')
+    # 1. Embedding
     Settings.embed_model = HuggingFaceEmbedding(
-        model_name='BAAI/bge-small-en-v1.5',
-        cache_folder=cache_dir,
+        model_name="BAAI/bge-small-en-v1.5",
+        cache_folder=CACHE_DIR
     )
 
+    # 2. Re-ranker
+    reranker = CrossEncoder(RERANKER_MODEL_ID, max_length=512, cache_folder=CACHE_DIR)
+
+    # 3. Hybrid Retriever (BALANCED)
     client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
-    vector_store = QdrantVectorStore(client=client, collection_name='afghan_doc_local')
+    vector_store = QdrantVectorStore(
+        client=client, 
+        collection_name="afghan_doc_local",
+        enable_hybrid=True
+    )
     index = VectorStoreIndex.from_vector_store(vector_store=vector_store)
-
-    retriever = index.as_retriever(similarity_top_k=10)
-    print('Loading re-ranker model...')
-    if CrossEncoder is None:
-        print('WARNING: sentence-transformers import failed. Running without re-ranker.')
-        reranker = None
-    else:
-        reranker = CrossEncoder('BAAI/bge-reranker-v2-m3', max_length=512)
-    print('System ready.')
-
+    
+    # alpha=0.4: Better balance for Semantic (Vector) and Precision (Keyword)
+    # top_k=30: Retrieve a wider pool so we don't miss the article.
+    retriever = index.as_retriever(
+        similarity_top_k=30, 
+        vector_store_query_mode="hybrid", 
+        alpha=0.4 
+    ) 
+    print("✅ System ready!")
 
 class QueryRequest(BaseModel):
     query: str
-
 
 class QueryResponse(BaseModel):
     answer: str
     sources: list
 
-
 @app.post("/chat", response_model=QueryResponse)
 async def chat_endpoint(request: QueryRequest):
-    if not retriever:
-        raise HTTPException(status_code=503, detail="System is initializing")
-
-    try:
-        # Step 1: Rewrite query
-        rewritten_query = rewrite_query_for_legal_search(request.query)
-        print(f"Rewritten: {rewritten_query}")
-
-        # Step 2: Retrieve 10 chunks
-        nodes = retriever.retrieve(rewritten_query)
-        if not nodes:
-            return QueryResponse(answer="No documents found.", sources=[])
-
-        source_texts = [n.node.get_content() for n in nodes]
-
-        # Step 3: Re-rank chunks, take top 3
-        if reranker:
-            pairs = [[request.query, chunk] for chunk in source_texts]
-            scores = reranker.predict(pairs)
-            ranked_chunks = sorted(zip(scores, source_texts), key=lambda x: x[0], reverse=True)
-            top_3_chunks = [text for _, text in ranked_chunks[:3]]
-        else:
-            top_3_chunks = source_texts[:3]
-
-        # Step 4: Article-level re-ranking within top 3 chunks
-        best_article, confidence = find_best_article(request.query, top_3_chunks)
-
-        # Step 5: Format clean answer
-        answer = format_answer(request.query, best_article, confidence)
-
-        return QueryResponse(answer=answer, sources=top_3_chunks)
-
-    except Exception as e:
-        print(f"🔥 Error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get('/')
-def health_check():
-    return {'status': 'running'}
+    t_start = time.time()
+    
+    # 1. Rewrite for Search Precision
+    search_query = rewrite_query_for_legal_search(request.query)
+    
+    # 2. Retrieve (Wide Net)
+    nodes = retriever.retrieve(search_query)
+    if not nodes:
+        return QueryResponse(answer="No documents found.", sources=[])
+    
+    article_chunks = [n.node.get_content() for n in nodes]
+    
+    # 2. Re-rank (Intelligent Filtering)
+    pairs = [[request.query, doc] for doc in article_chunks]
+    scores = reranker.predict(pairs)
+    ranked_results = sorted(zip(scores, article_chunks), key=lambda x: x[0], reverse=True)
+    
+    # 3. Context Selection
+    # Take top 4 to ensure we catch Rule + Exception (e.g. Partnership death)
+    top_chunks = [text for _, text in ranked_results[:4]]
+    combined_context = "\n\n".join(top_chunks)
+    
+    # 4. Generate Answer
+    answer = call_ai_model(request.query, combined_context)
+    
+    print(f"⏱ Total Latency: {time.time()-t_start:.2f}s")
+    return QueryResponse(answer=answer, sources=top_chunks)

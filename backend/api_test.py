@@ -24,7 +24,7 @@ response = requests.post(
         "X-Title": "AFG-RAG-Reasoning-Test",
     },
     data=json.dumps({
-        "model": "arcee-ai/trinity-large-preview:free",
+        "model": "google/gemma-3-12b-it:free",
         "messages": [
             {
                 "role": "user",

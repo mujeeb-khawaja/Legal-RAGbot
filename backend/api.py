@@ -36,39 +36,21 @@ executor = ThreadPoolExecutor(max_workers=4)
 RERANKER_MODEL_ID = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
 # --- HELPER FUNCTIONS ---
-def rewrite_query_for_legal_search(query: str) -> str:
+def generate_hyde_query(user_query: str) -> str:
     prompt = (
-        "You are an expert legal search query generator for the Civil Code of Afghanistan (1977).\n"
-        "Your Goal: Translate layman user questions into precise legal terminology and concepts found in the Civil Code to maximize vector retrieval accuracy.\n\n"
-        
-        "GUIDELINES FOR TRANSLATION:\n"
-        "1. IDENTIFY THE LEGAL DOMAIN:\n"
-        "   - If Money/Debts/Agreements -> Use 'Obligations', 'Contracts', 'Debt Discharge'.\n"
-        "   - If Land/Houses -> Use 'Real Rights', 'Real Estate', 'Ownership', 'Preemption (Shufa)', 'Mortgage'.\n"
-        "   - If Family/Death -> Use 'Personal Status', 'Inheritance', 'Will (Wasiyat)', 'Marriage', 'Custody'.\n\n"
-
-        "2. MAP LAYMAN TERMS TO CIVIL CODE JARGON:\n"
-        "   - 'Breaking a deal' -> 'Rescission' or 'Dissolution of Contract'.\n"
-        "   - 'Cheating/Lying' -> 'Fraud', 'Deception', or 'Lesion'.\n"
-        "   - 'Forcing someone' -> 'Duress' or 'Coercion'.\n"
-        "   - 'Buying together' or 'Contributing money' -> 'Common Ownership (Shirkat)', 'Company', 'Division of Property'.\n"
-        "   - 'Neighbor rights' -> 'Preemption', 'Easement Rights'.\n"
-        "   - 'Giving for free' -> 'Donation' or 'Endowment (Waqf)'.\n\n"
-
-        "3. HANDLE FAMILY CONTEXT INTELLIGENTLY:\n"
-        "   - If the query is about business, debts, or property purchase between relatives (father/son) BUT no one has died -> FOCUS on 'Contract' and 'Ownership' terms. IGNORE Inheritance terms.\n"
-        "   - Only use 'Inheritance' or 'Bequeath' if the query explicitly mentions death or passing away.\n\n"
-
-        f"User Query: {query}\n\n"
-        "Output: A single line of high-value legal search keywords and phrases."
+        "You are an expert Afghan Legal Scholar.\n"
+        "Write a SHORT hypothetical legal paragraph (2-3 sentences) that would answer this question.\n"
+        "Use formal Civil Code vocabulary: 'non-heir', 'one-third', 'dissolution', 'preemption', 'rescission', etc.\n"
+        "Do NOT worry about being correct. Focus on using the RIGHT LEGAL WORDS.\n\n"
+        f"Question: {user_query}\n\n"
+        "Hypothetical Legal Paragraph:"
     )
-    
     models = [
+        "google/gemma-3-12b-it:free",
+        "google/gemma-3-4b-it:free",
         "meta-llama/llama-3.2-3b-instruct:free",
-        "arcee-ai/trinity-large-preview:free",
-        "google/gemma-3-4b-it:free"
+        "arcee-ai/trinity-large-preview:free"
     ]
-    
     for model in models:
         try:
             response = requests.post(
@@ -77,18 +59,18 @@ def rewrite_query_for_legal_search(query: str) -> str:
                 data=json.dumps({
                     "model": model,
                     "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.1,
-                    "max_tokens": 100
+                    "temperature": 0.3,
+                    "max_tokens": 150
                 }),
-                timeout=5
+                timeout=8
             )
             if response.status_code == 200:
-                rewritten = response.json()['choices'][0]['message']['content'].strip()
-                print(f"🔄 Rewritten: {rewritten}")
-                return rewritten
+                hyde_text = response.json()['choices'][0]['message']['content'].strip()
+                print(f"� HyDE: {hyde_text[:100]}...")
+                return hyde_text
         except Exception:
             continue
-    return query
+    return user_query  # fallback
 
 def call_ai_model(query: str, context: str) -> str:
     prompt = (
@@ -168,8 +150,10 @@ class QueryResponse(BaseModel):
 async def chat_endpoint(request: QueryRequest):
     t_start = time.time()
     
-    # 1. Rewrite for Search Precision
-    search_query = rewrite_query_for_legal_search(request.query)
+    # 1. HyDE Transformation
+    search_query = await asyncio.get_event_loop().run_in_executor(
+        executor, generate_hyde_query, request.query
+    )
     
     # 2. Retrieve (Wide Net)
     nodes = retriever.retrieve(search_query)

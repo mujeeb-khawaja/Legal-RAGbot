@@ -1,0 +1,82 @@
+[
+  {
+    "q": "What is the legal age for marriage for boys and girls?",
+    "expected_source": "70",
+    "ai_answer": "The legal age for marriage is specified in Article 70. For males, it is 18 years, and for females, it is 16 years.",
+    "found_expected_source": true,
+    "top_ranked_article": "71",
+    "latency": 21.101959466934204
+  },
+  {
+    "q": "Under what conditions is a man allowed to marry more than one wife?",
+    "expected_source": "86",
+    "ai_answer": "A man is allowed to marry more than one wife when the following conditions are met:\n\n1. There is no fear of injustice among the wives (Article 86).\n2. The person has sufficient financial ability to sustain alimony for the wives, including food, clothing, residence, and appropriate medical treatment (Article 86).\n3. There is a legitimate interest, such as the infertility of the first wife or her having difficultly curable illnesses (Article 86).",
+    "found_expected_source": true,
+    "top_ranked_article": "86",
+    "latency": 18.93781065940857
+  },
+  {
+    "q": "Until what age does a mother keep custody of her son and daughter?",
+    "expected_source": "249",
+    "ai_answer": "According to Article 249, the period of custody for a son ends at 7 years of age, and for a daughter, it ends at 9 years of age.",
+    "found_expected_source": true,
+    "top_ranked_article": "249",
+    "latency": 11.412439346313477
+  },
+  {
+    "q": "How much inheritance does a husband get if his wife dies and they have children?",
+    "expected_source": "2007",
+    "ai_answer": "According to Article 2007, if the husband has children or male children, even in lower degrees, he shall receive one fourth of the inheritance.",
+    "found_expected_source": true,
+    "top_ranked_article": "2007",
+    "latency": 17.23028254508972
+  },
+  {
+    "q": "Can a person make a will for their entire property to go to a stranger?",
+    "expected_source": "2137",
+    "ai_answer": "Based on the provided legal articles, a person cannot make a will for their entire property to go to a stranger. Article 2131 states that if a will is made for specific persons, the share of those persons for whom a will may not be made shall be returned to the inheritance of the testator. This implies that there are restrictions on who can be included in a will, and strangers are likely not among those who can be included. Therefore, a person cannot make a will for their entire property to go to a stranger.",
+    "found_expected_source": false,
+    "top_ranked_article": "275",
+    "latency": 21.20769166946411
+  },
+  {
+    "q": "If I buy a stolen item from a market in good faith, do I have to give it back to the original owner?",
+    "expected_source": "2290",
+    "ai_answer": "According to Article 1170, if you obtained the item by paying consideration and in good faith, you acquire a real right on the object of sale, and the provisions that would normally require returning it to the original owner do not apply. This means you are not obligated to return the stolen item to the original owner. However, your good faith is crucial; if you were aware that the item was stolen or were notified of the defect in possession, Article 2277 states that your good faith would be repudiated, and you could be required to return the item.",
+    "found_expected_source": false,
+    "top_ranked_article": "1154",
+    "latency": 15.462177753448486
+  },
+  {
+    "q": "What is the maximum period for a lease if the person administering the property is not the owner (e.g. a guardian)?",
+    "expected_source": "1325",
+    "ai_answer": "Article 1325 states that a person who is solely authorized to administer the property may not fix the period of lease for more than three years. If a longer period is fixed, it shall be reduced to three years, unless the law provides otherwise.\n\nArticle 276 adds that a guardian may not lease property for a period that shall continue after the majority age without permission of the competent court.\n\nTherefore, the maximum period for a lease by a guardian is three years, unless the court grants permission for a longer period.",
+    "found_expected_source": true,
+    "top_ranked_article": "1325",
+    "latency": 32.05216574668884
+  },
+  {
+    "q": "Does a partnership end if one of the partners dies?",
+    "expected_source": "1250",
+    "ai_answer": "Yes, a partnership ends if one of the partners dies, according to Article 1250. The article lists \"Death of one of partners or his incapacitation or registration of his bankruptcy\" as one of the cases that causes the dissolution of a partnership.\n\nHowever, there is an exception mentioned in Article 1251. Partners may agree that the partnership shall continue after the death of one of the partners through his heirs, even if they are minors. In this case, the partnership does not end upon the death of a partner.\n\nSo, while the default rule is that a partnership ends upon the death of a partner, partners can agree to continue the partnership after a partner's death.",
+    "found_expected_source": true,
+    "top_ranked_article": "1251",
+    "latency": 23.603404760360718
+  },
+  {
+    "q": "What is the right of Preemption (Shufa)?",
+    "expected_source": "2213",
+    "ai_answer": "Preemption is the right of acquisition of ownership of all or part of a sold real estate in return for its price and the expenses made, even if by coercion. This right allows a person to acquire ownership of real estate that has been sold to another party, provided they are willing to pay the same price and cover the associated expenses. The right of preemption is governed by specific rules and priorities, as outlined in the legal articles.",
+    "found_expected_source": true,
+    "top_ranked_article": "2213",
+    "latency": 22.202438592910767
+  },
+  {
+    "q": "Is preemption allowed if the property was given as a gift or inheritance?",
+    "expected_source": "2226",
+    "ai_answer": "Article 2226 explicitly states that there is no preemption in the case of gratuitous donation, charity, or inheritance. Therefore, preemption is not allowed if the property was given as a gift or inheritance.",
+    "found_expected_source": true,
+    "top_ranked_article": "2226",
+    "latency": 17.017354488372803
+  }
+]

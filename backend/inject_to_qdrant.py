@@ -12,61 +12,80 @@ QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "hf_cache")
 
+# Setup Embedding
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="BAAI/bge-small-en-v1.5", 
     cache_folder=CACHE_DIR
 )
 
-# --- CONFIGURATION ---
-KEYWORD_BRIDGE = {
-    "2137": "stranger entire property will limit one third non-heir bequest maximum",
-    "1325": "maximum period lease guardian administrator three years",
-    "1044": "option of sight buyer reject unseen purchase",
-}
-
-def clean_and_structurally_chunk(file_path):
+def clean_and_contextual_chunk(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
-        text = f.read()
+        lines = f.readlines()
 
-    # 1. Clean Table of Contents
-    # Make sure your text file doesn't actually have the TOC before Article 1
-    text = re.sub(r"Table of Contents.*?(?=Article 1[:\s])", "", text, flags=re.DOTALL | re.IGNORECASE)
-    
-    # 2. Split by Article (Flexible Regex: Handles 'Article 1:' and 'Article 1 ')
-    # This keeps the "Article X" part in the chunk
-    chunks = re.split(r'(?=Article \d+)', text)
-    
     legal_documents = []
-    for chunk in chunks:
-        clean_chunk = chunk.strip()
-        if not clean_chunk: continue
-        
-        # Filter out tiny chunks
-        if len(clean_chunk) < 20: continue
+    
+    # State variables to hold context
+    current_book = ""
+    current_title = ""
+    current_chapter = ""
+    current_topic = ""
+    
+    current_article_text = ""
+    current_article_num = ""
+
+    for line in lines:
+        line = line.strip()
+        if not line: continue
+
+        # 1. Capture Context Headers
+        if line.lower().startswith("book"):
+            current_book = line
+        elif line.lower().startswith("title"):
+            current_title = line
+        elif line.lower().startswith("chapter"):
+            current_chapter = line
+        elif line.lower().startswith("topic") or line.lower().startswith("section"):
+            current_topic = line
             
-        # Extract Article Number for Metadata
-        match = re.search(r'Article (\d+)', clean_chunk)
-        article_num = match.group(1) if match else "Unknown"
+        # 2. Detect Article Start
+        elif line.lower().startswith("article"):
+            # Save previous article if exists
+            if current_article_num:
+                # INJECT CONTEXT INTO THE CHUNK
+                full_context = f"{current_book} > {current_title} > {current_chapter} > {current_topic}"
+                final_text = f"Context: {full_context}\n\nArticle {current_article_num}:\n{current_article_text}"
+                
+                doc = Document(
+                    text=final_text,
+                    metadata={
+                        "article_id": current_article_num,
+                        "context": full_context
+                    }
+                )
+                legal_documents.append(doc)
+
+            # Start new article
+            match = re.search(r'(\d+)', line)
+            if match:
+                current_article_num = match.group(1)
+                current_article_text = ""
         
-        # KEYWORD BRIDGE: Inject layman terms for articles with vocabulary gaps
-        bridge_keywords = KEYWORD_BRIDGE.get(article_num, "")
-        if bridge_keywords:
-            clean_chunk = f"Keywords: {bridge_keywords}\n\n{clean_chunk}"
-        
-        doc = Document(
-            text=clean_chunk,
-            metadata={
-                "article_id": article_num,
-                "source": "Civil Code"
-            }
-        )
+        # 3. Accumulate Text
+        else:
+            current_article_text += line + " "
+
+    # Save the last article
+    if current_article_num:
+        full_context = f"{current_book} > {current_title} > {current_chapter} > {current_topic}"
+        final_text = f"Context: {full_context}\n\nArticle {current_article_num}:\n{current_article_text}"
+        doc = Document(text=final_text, metadata={"article_id": current_article_num})
         legal_documents.append(doc)
-        
-    print(f"✅ Structural Parsing: Created {len(legal_documents)} article-chunks.")
+
+    print(f"✅ Contextual Parsing: Created {len(legal_documents)} enriched chunks.")
     return legal_documents
 
 def upload_hybrid():
-    print("--- 🚀 Starting Robust Hybrid Upload ---")
+    print("--- 🚀 Starting Context-Aware Hybrid Upload ---")
     file_path = os.path.join(os.path.dirname(__file__), "verified_data.txt")
     
     client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
@@ -78,12 +97,12 @@ def upload_hybrid():
     vector_store = QdrantVectorStore(
         client=client,
         collection_name="afghan_doc_local",
-        enable_hybrid=True, 
+        enable_hybrid=True,
         batch_size=20
     )
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
-    documents = clean_and_structurally_chunk(file_path)
+    documents = clean_and_contextual_chunk(file_path)
 
     VectorStoreIndex.from_documents(
         documents,

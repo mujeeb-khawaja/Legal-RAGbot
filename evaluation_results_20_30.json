@@ -1,0 +1,82 @@
+[
+  {
+    "q": "In a sale contract, if the buyer buys something without seeing it (Option of Sight), when can he reject it?",
+    "expected_source": "1044",
+    "ai_answer": "According to Article 1044, if a person buys a property without seeing it, he is given the option to reject it at the moment of seeing it, even if he has previously given verbal consent. This means the buyer can reject the object of sale when he sees it for the first time after the purchase.\n\nHowever, Article 1050 states that if the buyer takes certain actions on the object of sale before seeing it, such as selling it, mortgaging it, leasing it, or if the object perishes, is destroyed, or damaged while under his possession, his right to reject the object based on the option of sight shall extinguish, and the sale shall become binding.\n\nTherefore, the buyer can reject the object of sale when he sees it for the first time after the purchase, unless he takes certain actions on the object before seeing it, in which case his right to reject it shall extinguish.",
+    "found_expected_source": true,
+    "top_ranked_article": "1050",
+    "latency": 19.63909673690796
+  },
+  {
+    "q": "What is the limitation period for filing a lawsuit regarding a defect in a purchased item?",
+    "expected_source": "1107",
+    "ai_answer": "The limitation period for filing a lawsuit regarding a defect in a purchased item is **six months** from the date of delivery of the object of sale. This is specified in **Article 1107**, which states that the claim of liability for a defect shall not be heard after the lapse of six months since the date of delivery, even if the defect has not yet appeared to the buyer. However, if the buyer proves that the concealment of the defect originated from the seller\u2019s cheating, the seller cannot rely on the expiration of this period.",
+    "found_expected_source": true,
+    "top_ranked_article": "1107",
+    "latency": 23.125921487808228
+  },
+  {
+    "q": "If an architect designs a building plan but does not supervise the construction, is he liable for defects in the building?",
+    "expected_source": "1492",
+    "ai_answer": "Article 1492 states that an architect who designs a plan or map but does not supervise the performance of the work shall only be liable for defects in the plan or map. This means that if the architect does not supervise the construction, he is not liable for defects that occur in the building itself, but only for defects in the design or plan.",
+    "found_expected_source": true,
+    "top_ranked_article": "1492",
+    "latency": 16.931588172912598
+  },
+  {
+    "q": "If a person hires a worker (Labour Contract) but does not specify the wage, how is the wage determined?",
+    "expected_source": "1535",
+    "ai_answer": "Article 1535 states that if the amount of fee is not stated in the contract, a market fee shall be determined according to the current custom. If there is no custom, the court shall determine it as justice is met.",
+    "found_expected_source": true,
+    "top_ranked_article": "1535",
+    "latency": 17.309019804000854
+  },
+  {
+    "q": "Can an agent appointed to buy a specific house buy it for himself instead?",
+    "expected_source": "1583",
+    "ai_answer": "Article 1158 states that a broker or expert to whom properties are deposited for sale or price determination may not buy them for himself under his name or a pseudonym. This rule applies to agents appointed to purchase specific properties. Therefore, an agent appointed to buy a specific house cannot buy it for himself instead.",
+    "found_expected_source": false,
+    "top_ranked_article": "1581",
+    "latency": 16.110234022140503
+  },
+  {
+    "q": "If a person intentionally kills their father, can they inherit from him?",
+    "expected_source": "1999",
+    "ai_answer": "According to Article 1999, intentional murder of the testator is one of the impediments to inheritance. This means that if a person intentionally kills their father, they are barred from inheriting from him. The article specifies that this applies whether the murderer is the principal actor, accomplice, or false witness whose testimony has caused the death sentence and execution thereof, provided that the murder is unjustifiable, without excuse, and the murderer is sane and has completed eighteen years of age.",
+    "found_expected_source": true,
+    "top_ranked_article": "2058",
+    "latency": 16.434192657470703
+  },
+  {
+    "q": "If two people die in the same accident (e.g., a fire or drowning) and we don't know who died first, do they inherit from each other?",
+    "expected_source": "1996",
+    "ai_answer": "According to Article 2059, if two people die in the same incident, such as drowning or fire, and it is not known which one died first, they shall not inherit from one another. Their shares will be divided among their living heirs.",
+    "found_expected_source": false,
+    "top_ranked_article": "2059",
+    "latency": 14.119109630584717
+  },
+  {
+    "q": "How is the inheritance divided if the deceased leaves behind a daughter and no sons?",
+    "expected_source": "2008",
+    "ai_answer": "According to Article 2008, if the deceased leaves behind a daughter and no sons, the daughter is entitled to inherit as follows:\n\n- One daughter shall be entitled to half of the inheritance.\n\nThis is because Article 2008 states that \"One daughter shall be entitled to half of the inheritance\" when there are no other daughters or daughters of sons who are higher in degree.",
+    "found_expected_source": true,
+    "top_ranked_article": "2039",
+    "latency": 18.812907457351685
+  },
+  {
+    "q": "Who has a stronger right to Preemption (Shufa): a partner in the property or a neighbor?",
+    "expected_source": "2221",
+    "ai_answer": "According to Article 2221, in case of convergence of causes of preemption, the stronger cause shall be referred. The article establishes a hierarchy of priority rights: a partner in the real estate itself has priority over a partner in the shared surrounding land, who in turn has priority over a partner in special rights over the sold real estate, and finally, a partner in special rights over the sold real estate has priority over an adjacent neighbor. Therefore, a partner in the property has a stronger right to Preemption (Shufa) than a neighbor.",
+    "found_expected_source": true,
+    "top_ranked_article": "2221",
+    "latency": 18.1372549533844
+  },
+  {
+    "q": "Can a neighbor open a window looking directly into my house if the distance is less than one meter?",
+    "expected_source": "1929",
+    "ai_answer": "According to Article 1929, a neighbor does not have the right to build a window or quasi-window towards another neighbor within a distance of less than one meter. The distance is measured from the back of the wall where the window is located or from the external corner of the wall. Therefore, if the distance is less than one meter, the neighbor cannot open a window looking directly into your house.",
+    "found_expected_source": true,
+    "top_ranked_article": "1929",
+    "latency": 14.161194324493408
+  }
+]

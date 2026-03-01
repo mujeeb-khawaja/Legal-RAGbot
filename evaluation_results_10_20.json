@@ -1,0 +1,82 @@
+[
+  {
+    "q": "If a man and woman are engaged and they exchange gifts, but then one of them cancels the engagement, can they get the gifts back?",
+    "expected_source": "65",
+    "ai_answer": "According to Article 65, if the engaged parties give gifts to each other and one party cancels the engagement, the person who gave the gift may demand its return if the gift still exists. If the gift has been destroyed or depreciated, the giver cannot demand its return. If the person who gave the gift is the one who cancels the engagement, they cannot demand the return of the gift. Therefore, if the engagement is cancelled by one party, the other party may be entitled to get the gift back, depending on the circumstances.",
+    "found_expected_source": true,
+    "top_ranked_article": "65",
+    "latency": 22.982889652252197
+  },
+  {
+    "q": "If a wife donates her dowry (Mahr) to her husband but they get divorced before the marriage is consummated, can the husband claim half of it back?",
+    "expected_source": "111",
+    "ai_answer": "According to Article 111, if the wife donates all or part of her dowry to the husband before or after the dowry is delivered, and the divorce occurs before consummation of marriage, the husband cannot demand half of the dowry. Article 112 reinforces this by stating that if the dowry is not cash or fungible goods and the wife donates all or half of it to the husband, the husband may not demand anything as dowry if the divorce takes place before consummation. Therefore, in both cases, the husband cannot claim half of the dowry back.",
+    "found_expected_source": true,
+    "top_ranked_article": "111",
+    "latency": 23.704243183135986
+  },
+  {
+    "q": "Can a mother demand payment (wages) for breastfeeding her own child?",
+    "expected_source": "230",
+    "ai_answer": "Yes, a mother can demand payment for breastfeeding her own child, but only under certain conditions.\n\nAccording to Article 232, a mother is entitled to remuneration for giving milk to her child for up to two years. After two years, she is not entitled to any remuneration.\n\nHowever, Article 233 states that if another woman agrees to give milk to the child for free or for less than what the mother demands, the mother is not entitled to any remuneration.\n\nAdditionally, Article 247 indicates that if the person responsible for paying custody remuneration is wealthy and the child owns property, the child can be delivered to the mother in exchange for a customary remuneration, even if this remuneration is paid from the child's property.\n\nTherefore, a mother can demand payment for breastfeeding her own child for up to two years, unless another woman agrees to do it for free or for less, or if the child's property is used to pay a customary remuneration.",
+    "found_expected_source": false,
+    "top_ranked_article": "229",
+    "latency": 19.577040195465088
+  },
+  {
+    "q": "If a divorced woman is pregnant, when does her waiting period (Iddah) end?",
+    "expected_source": "206",
+    "ai_answer": "The waiting period for a divorced woman who is pregnant ends with the complete birth of the fetus, provided that the formation of the baby's organs is wholly or partially apparent. This is specified in Article 206.",
+    "found_expected_source": true,
+    "top_ranked_article": "206",
+    "latency": 14.483909845352173
+  },
+  {
+    "q": "What happens to the right of custody if the mother marries a stranger (someone not related to the child)?",
+    "expected_source": "245",
+    "ai_answer": "If the mother marries a stranger (someone not related to the child), she loses her right to custody. According to Article 245, if the mother is in the waiting period of an irreversible divorce or marries a person who is in the \"prohibited\" category to marry for the child, she is entitled to custody remuneration. However, if she marries a stranger, she is no longer entitled to custody remuneration, and the father of the child may get custody of the child and claim an amount equivalent to the fee of caring or the remaining period thereof, as stated in Article 172.",
+    "found_expected_source": true,
+    "top_ranked_article": "245",
+    "latency": 35.75270986557007
+  },
+  {
+    "q": "How many years must a person possess a piece of land to claim ownership of it through 'Lapse of Time' (Adverse Possession)?",
+    "expected_source": "2279",
+    "ai_answer": "To claim ownership of a piece of land through 'Lapse of Time' (Adverse Possession), a person must possess the land continuously for **fifteen years** without interruption and without any dispute or conflict. This is specified in Article 2279. However, if the possession is based on inheritance, this rule does not apply, and a Shar`i reason would be required for an inheritance claim after 33 years, as stated in Article 2280.",
+    "found_expected_source": true,
+    "top_ranked_article": "2280",
+    "latency": 27.464383363723755
+  },
+  {
+    "q": "If someone finds buried ancient relics or treasure on their own private land, who owns it?",
+    "expected_source": "1988",
+    "ai_answer": "According to Article 1988, if mine, treasure, or ancient relics are found on privately owned lands, their ownership belongs to the government. Additionally, the owner of the land is entitled to a reward, and the land itself may be expropriated according to the laws of expropriation.",
+    "found_expected_source": true,
+    "top_ranked_article": "1988",
+    "latency": 20.698307514190674
+  },
+  {
+    "q": "Can a person own public property, like a bridge or public park, by possessing it for a long time?",
+    "expected_source": "482",
+    "ai_answer": "No, a person cannot own public property, such as a bridge or public park, by possessing it for a long time. According to Article 482, public properties include movable and immovable properties of the state, legal persons, properties allocated to public benefits and interests, and properties recognized as public by law. The article explicitly states that possession, attachment, and ownership by lapse of time of these properties are not permissible. Therefore, regardless of the duration of possession, public property cannot be acquired through long-term possession.",
+    "found_expected_source": true,
+    "top_ranked_article": "2279",
+    "latency": 22.561564922332764
+  },
+  {
+    "q": "If a person plants crops on another person's land without permission, who do the crops belong to?",
+    "expected_source": "2208",
+    "ai_answer": "According to Article 2208, if a person plants seeds in the land of another person without the owner's permission and the seeds grow, the crops shall belong to the land owner.",
+    "found_expected_source": true,
+    "top_ranked_article": "2208",
+    "latency": 19.008525133132935
+  },
+  {
+    "q": "If I own the upper floor of a building and you own the lower floor, do I have the right to live on the roof of your floor?",
+    "expected_source": "1979",
+    "ai_answer": "Yes, you have the right to live on the roof of the lower floor. According to Article 1979, if one owns the upper floor and the other owns the lower floor of a building, the owner of the upper floor shall have the right of residence on the ceiling, which is recognized as the property of the owner of the lower floor. Additionally, Article 1058 states that if the upper floor is owned by the owner of the first floor, the buyer (owner of the upper floor) shall have the right to reside on the roof of the first floor. Therefore, you have the right to live on the roof of the lower floor.",
+    "found_expected_source": true,
+    "top_ranked_article": "1979",
+    "latency": 26.53760313987732
+  }
+]
